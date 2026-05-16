@@ -9,3 +9,5 @@ log/
 
 config/accounts/*.yaml
 config/dld_cookie.yaml
+/build
+/dist
