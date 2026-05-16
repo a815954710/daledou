@@ -7,3 +7,4 @@ pyinstaller ^
   --hidden-import src.daledou.tasks.two ^
   --hidden-import src.daledou.tasks.other ^
   main.py
+pause
