@@ -405,6 +405,10 @@ noon:
     历练: # 每天反向乐斗BOSS
       enabled: true
 
+  多倍福利:
+    历练: # 每天反向乐斗BOSS
+      enabled: true
+
 # evening.py 模块任务配置
 evening:
   帮派商会:
@@ -493,6 +497,14 @@ evening:
       enabled: false
       material_name: 大宴香炉
       material_id: 6773
+    世界树轮回秘境:
+      enabled: false
+      material_name: 树境香炉
+      material_id: 8222
+    技冠五绝:
+      enabled: false
+      material_name: 五绝香炉
+      material_id: 8604
 
   深渊之潮:
     深渊秘境:
@@ -609,23 +621,27 @@ evening:
     献酒: [王重阳碎片, 王处一碎片]
 
   节日福利:
-    斗神塔: # 周四自动挑战（次数耗尽或到不了顶层结束）
+    斗神塔:
       count: 16
 
   双旦福利:
-    斗神塔: # 周四自动挑战（次数耗尽或到不了顶层结束）
+    斗神塔:
       count: 16
 
   金秋福利:
-    斗神塔: # 周四自动挑战（次数耗尽或到不了顶层结束）
+    斗神塔:
       count: 16
 
   春节福利:
-    斗神塔: # 周四自动挑战（次数耗尽或到不了顶层结束）
+    斗神塔:
+      count: 16
+
+  多倍福利:
+    斗神塔:
       count: 16
 
   微信兑换:
-    兑换码: 260205
+    兑换码: 265151
 
   春联大赛:
     爆竹传吉语: 腊梅报新春

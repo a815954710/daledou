@@ -2092,8 +2092,8 @@ async def 万圣节(d: DaLeDou):
 
 
 @register()
-async def 能量棒(d: DaLeDou):
-    # 能量棒
+async def 乐斗能量(d: DaLeDou):
+    # 乐斗能量
     await d.get("cmd=newAct&subtype=108&op=0")
     data = d.findall(r"id=(\d+)")
     if not data:
@@ -2146,7 +2146,7 @@ async def 客栈同福(d: DaLeDou):
 
 @register()
 async def 反向历练(d: DaLeDou, link_text: str):
-    if not d.config(f"{link_text}.历练"):
+    if not d.config(f"{link_text}.历练.enabled"):
         return
 
     # 乐斗助手
@@ -2189,6 +2189,11 @@ async def 金秋福利(d: DaLeDou):
 @register()
 async def 春节福利(d: DaLeDou):
     await 反向历练(d, "春节福利")
+
+
+@register()
+async def 多倍福利(d: DaLeDou):
+    await 反向历练(d, "多倍福利")
 
 
 @register()

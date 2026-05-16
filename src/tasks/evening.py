@@ -700,6 +700,51 @@ async def 中原武林之危(
         await j.end_memories()
 
 
+async def 世界树轮回秘境(
+    d: DaLeDou, name: str, ins_id: str, material_quantity: int, duration: int
+):
+    j = JiangHuDream(d, name, ins_id)
+    for _ in range(material_quantity):
+        if not await j.begin_success():
+            break
+
+        for day in range(duration + 1):
+            day = await j.next_day(day)
+            if day is None:
+                return
+
+            # 战斗优先等级3 > 2 > 1
+            if event_ids := d.findall(r'event_id=(\d+)">战斗'):
+                event_id = event_ids[-1]
+                if await j.choose_fight(day, event_id):
+                    continue
+                await j.end_memories()
+                return
+        await j.end_memories()
+
+
+async def 技冠五绝(
+    d: DaLeDou, name: str, ins_id: str, material_quantity: int, duration: int
+):
+    j = JiangHuDream(d, name, ins_id)
+    for _ in range(material_quantity):
+        if not await j.begin_success():
+            break
+
+        for day in range(duration + 1):
+            day = await j.next_day(day)
+            if day is None:
+                return
+
+            # 战斗2
+            if event_id := d.find(r'event_id=(\d+)">战斗'):
+                if await j.choose_fight(day, event_id):
+                    continue
+                await j.end_memories()
+                return
+        await j.end_memories()
+
+
 @register()
 async def 江湖长梦(d: DaLeDou):
     # 江湖长梦
@@ -1127,22 +1172,21 @@ async def 客栈同福(d: DaLeDou):
 
 
 async def 斗神塔(d: DaLeDou, link_text: str):
-    name = f"{link_text}-斗神塔"
-    count: int = d.config(f"{link_text}.斗神塔")
+    count: int = d.config(f"{link_text}.斗神塔.count")
     if count <= 0:
-        d.log(f"你设置斗神塔挑战次数为{count}", name)
+        d.log(f"斗神塔 -> 你设置自动挑战次数为{count}")
         return
 
     second = await c_get_doushenta_cd(d)
     for _ in range(count):
         # 自动挑战
         await d.get("cmd=towerfight&type=11")
-        d.log(d.find(), name)
+        d.log(f"斗神塔 -> {d.find()}")
         if "结束挑战" in d.html:
             await asyncio.sleep(second)
             # 结束挑战
             await d.get("cmd=towerfight&type=7")
-            d.log(d.find(), name)
+            d.log(f"斗神塔 -> {d.find()}")
         else:
             break
 
@@ -1165,6 +1209,11 @@ async def 金秋福利(d: DaLeDou):
 @register()
 async def 春节福利(d: DaLeDou):
     await 斗神塔(d, "春节福利")
+
+
+@register()
+async def 多倍福利(d: DaLeDou):
+    await 斗神塔(d, "多倍福利")
 
 
 @register()
@@ -1716,6 +1765,16 @@ async def 五一礼包(d: DaLeDou):
 
 
 @register()
+async def 五一预订(d: DaLeDou):
+    # 五一预订
+    await d.get("cmd=lokireservation")
+    if _id := d.find(r"idx=(\d+)"):
+        # 领取
+        await d.get(f"cmd=lokireservation&op=draw&idx={_id}")
+        d.log(d.find(r"<br /><br />(.*?)<"))
+
+
+@register()
 async def 好礼提升(d: DaLeDou):
     # 领取
     await d.get("cmd=newAct&subtype=43&op=get")
@@ -1818,15 +1877,3 @@ async def 重阳太白诗会(d: DaLeDou):
     # 领取重阳礼包
     await d.get("cmd=newAct&subtype=168&op=2")
     d.log(d.find(r"<br /><br />(.*?)<br />"))
-
-
-@register()
-async def 五一预订礼包(d: DaLeDou):
-    # 5.1预订礼包
-    await d.get("cmd=lokireservation")
-    if _id := d.find(r"idx=(\d+)"):
-        # 领取
-        await d.get(f"cmd=lokireservation&op=draw&idx={_id}")
-        d.log(d.find(r"<br /><br />(.*?)<"))
-    else:
-        d.log("没有登录礼包领取")
