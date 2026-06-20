@@ -1,10 +1,14 @@
-pyinstaller ^
+@echo off
+cd /d "%~dp0"
+
+uv run --with pyinstaller pyinstaller ^
+  --clean ^
   --onefile ^
   --name daledou ^
-  --paths src ^
-  --hidden-import src.daledou.tasks.common ^
-  --hidden-import src.daledou.tasks.one ^
-  --hidden-import src.daledou.tasks.two ^
-  --hidden-import src.daledou.tasks.other ^
+  --paths . ^
+  --hidden-import src.tasks.common ^
+  --hidden-import src.tasks.noon ^
+  --hidden-import src.tasks.evening ^
+  --hidden-import src.tasks.register ^
   main.py
 pause

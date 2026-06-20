@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 """
 配置加载模块，提供 YAML 配置文件的统一加载接口
 """
 
 from http.cookies import SimpleCookie
 from pathlib import Path
-from typing import Optional, Any, Final
+from typing import Optional, Any, Final, TYPE_CHECKING
 
 import yaml
 
-from src.tasks.register import TaskModule
+if TYPE_CHECKING:
+    from src.tasks.register import TaskModule
 
 
 class ConfigError(Exception):
@@ -176,6 +179,8 @@ class Config:
             cls.ACCOUNTS_DIR.mkdir(parents=True, exist_ok=True)
 
             # 构造以枚举值为顶级键的字典
+            from src.tasks.register import TaskModule
+
             yaml_data = {task.value: None for task in TaskModule}
             with open(file_path, "w", encoding="utf-8") as f:
                 yaml.dump(
@@ -226,3 +231,41 @@ class Config:
                 result[newuin] = cookie_dict
 
         return {} if qq is not None else result
+
+    @classmethod
+    def load_push_token(cls, qq: Optional[str] = None) -> Optional[str]:
+        """
+        加载 pushplus token。
+
+        优先从账号配置 config/accounts/{qq}.yaml 读取；
+        如果未指定账号或账号未配置，再从 config/dld_cookie.yaml、config/default.yaml 读取。
+        """
+        file_paths = []
+        if qq:
+            file_paths.append(cls.ACCOUNTS_DIR / f"{qq}.yaml")
+        file_paths.extend([cls.DLD_COOKIE_CONFIG_PATH, cls.DEFAULT_CONFIG_PATH])
+
+        for file_path in file_paths:
+            if not file_path.exists():
+                continue
+
+            data = cls._load_yaml_file(file_path) or {}
+            token = data.get("PUSH_TOKEN")
+            if isinstance(token, str) and token.strip():
+                return token.strip()
+
+        return None
+
+    @classmethod
+    def load_push_tokens(cls, qq_numbers: list[str]) -> list[str]:
+        """加载本次参与账号可用的 pushplus token，并去重保序。"""
+        tokens = []
+        seen = set()
+
+        for qq in qq_numbers:
+            token = cls.load_push_token(qq)
+            if token and token not in seen:
+                tokens.append(token)
+                seen.add(token)
+
+        return tokens

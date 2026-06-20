@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Pattern, Any
+from typing import Optional, Pattern, Any, Callable
 
 from src.utils.client import Client
 from src.utils.log import qq_logger
@@ -15,11 +15,13 @@ class DaLeDou:
         qq: str,
         client: Client,
         config_resolver: ConfigResolver,
+        log_collector: Optional[Callable[[str], None]] = None,
     ):
         self._qq = qq
         self._client = client
         self._config = config_resolver
         self._logger = qq_logger(qq)
+        self._log_collector = log_collector
 
         self.html: str = ""
         self.task_name: str | None = None
@@ -53,4 +55,7 @@ class DaLeDou:
 
     def log(self, msg: Optional[str], task_name: Optional[str] = None) -> None:
         log_prefix = task_name or self.task_name
-        self._logger.info(f"{log_prefix}：{msg}")
+        text = f"{log_prefix}：{msg}"
+        self._logger.info(text)
+        if self._log_collector is not None:
+            self._log_collector(text)

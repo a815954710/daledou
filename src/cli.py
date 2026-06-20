@@ -9,7 +9,7 @@ from src.tasks.register import (
     get_module_tasks,
     get_module_metadata,
 )
-from src.utils.config import Config
+from src.utils.config import Config, ConfigError
 
 
 def _build_patterns():
@@ -93,6 +93,7 @@ def show_help() -> None:
         "用法:",
         "  uv run main.py -> 启动定时任务调度器",
         "  uv run main.py <参数> -> 执行指定任务",
+        "  uv run main.py menu -> 启动交互式菜单",
         "",
         "参数格式（四种组合）:",
         "  1. 模块名称 -> 执行所有账号的该模块所有任务",
@@ -131,6 +132,124 @@ def show_help() -> None:
     print("\n".join(lines))
 
 
+def _print_separator() -> None:
+    print("-" * 50)
+
+
+def _select(prompt: str, options: list[str]) -> Optional[str]:
+    """数字菜单选择；直接回车或 q 返回。"""
+    if not options:
+        print("没有可选项")
+        return None
+
+    print(prompt)
+    for index, option in enumerate(options, start=1):
+        print(f"  {index}. {option}")
+    print("  q. 返回/退出")
+
+    while True:
+        choice = input("请选择：").strip()
+        if choice == "" or choice.lower() == "q":
+            return None
+        if choice.isdigit():
+            index = int(choice)
+            if 1 <= index <= len(options):
+                return options[index - 1]
+        print("输入无效，请重新选择")
+
+
+def _input_qq() -> Optional[str]:
+    qq = input("请输入 QQ 号；直接回车表示所有账号：").strip()
+    return qq or None
+
+
+def _select_module() -> Optional[TaskModule]:
+    module_name = _select("请选择模块：", [module.value for module in TaskModule])
+    if module_name is None:
+        return None
+    return TaskModule(module_name)
+
+
+def _run_registry(
+    module: TaskModule,
+    registry: dict[str, Callable],
+    qq: Optional[str] = None,
+) -> None:
+    try:
+        cookies = Config.load_cookies(qq)
+    except ConfigError as e:
+        print(f"Cookie 配置读取失败：{e}")
+        return
+
+    if not cookies:
+        if qq:
+            print(f"账号 {qq} 不存在或未配置 Cookie")
+        else:
+            print(f"请在 {Config.DLD_COOKIE_CONFIG_PATH} 中配置大乐斗 Cookie")
+        return
+
+    asyncio.run(TaskRunner(cookies, module, registry).run())
+
+
+def _menu_execute_module() -> None:
+    module = _select_module()
+    if module is None:
+        return
+
+    _run_registry(module, get_module_tasks(module), _input_qq())
+
+
+def _menu_execute_single_task() -> None:
+    module = _select_module()
+    if module is None:
+        return
+
+    registry = get_module_tasks(module)
+    task_name = _select("请选择任务：", list(registry.keys()))
+    if task_name is None:
+        return
+
+    _run_registry(module, {task_name: registry[task_name]}, _input_qq())
+
+
+def _menu_show_cookie_status() -> None:
+    try:
+        cookies = Config.load_cookies()
+    except ConfigError as e:
+        print(f"Cookie 配置读取失败：{e}")
+        print(f"请检查：{Config.DLD_COOKIE_CONFIG_PATH}")
+        return
+
+    if not cookies:
+        print(f"未配置 Cookie：{Config.DLD_COOKIE_CONFIG_PATH}")
+        return
+
+    print(f"已配置账号数：{len(cookies)}")
+    for qq in cookies:
+        print(f"  - {qq}")
+
+
+def run_menu() -> None:
+    """启动交互式菜单。"""
+    from src.timing import execute_timing
+
+    actions: dict[str, Callable[[], None]] = {
+        "启动定时任务": execute_timing,
+        "执行模块全部任务": _menu_execute_module,
+        "执行模块单个任务": _menu_execute_single_task,
+        "查看任务列表": show_help,
+        "查看 Cookie 配置状态": _menu_show_cookie_status,
+    }
+
+    while True:
+        _print_separator()
+        action = _select("请选择功能：", list(actions))
+        if action is None:
+            return
+        _print_separator()
+        actions[action]()
+
+
 def _filter_registry_by_task(
     registry: dict[str, Callable], task_name: Optional[str]
 ) -> dict[str, Callable]:
@@ -163,23 +282,21 @@ def _run_single_arg(arg: str) -> None:
         sys.exit(1)
 
     # 加载Cookie并执行
-    cookies = Config.load_cookies(qq)
-    if not cookies:
-        if qq:
-            print(f"账号 {qq} 不存在或未配置 Cookie")
-        else:
-            print(f"请在 {Config.DLD_COOKIE_CONFIG_PATH} 中配置大乐斗 Cookie")
-        sys.exit(1)
-
-    asyncio.run(TaskRunner(cookies, module, registry).run())
+    _run_registry(module, registry, qq)
 
 
 def main() -> None:
     """主入口函数"""
     args = sys.argv[1:]
 
-    # 无参数：启动定时任务调度器
+    # 无参数：
+    # - 打包后的 exe 双击运行时进入交互式菜单
+    # - 源码运行时保持原行为，启动定时任务调度器
     if len(args) == 0:
+        if getattr(sys, "frozen", False):
+            run_menu()
+            return
+
         from src.timing import execute_timing
 
         execute_timing()
@@ -188,6 +305,11 @@ def main() -> None:
     # 帮助参数
     if len(args) == 1 and args[0] in ("-h", "--help", "help"):
         show_help()
+        return
+
+    # 交互式菜单
+    if len(args) == 1 and args[0] in ("menu", "菜单"):
+        run_menu()
         return
 
     # 单参数：解析并执行指定任务

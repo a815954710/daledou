@@ -3,10 +3,10 @@
 
 a = Analysis(
     ['main.py'],
-    pathex=['src'],
+    pathex=['.'],
     binaries=[],
     datas=[],
-    hiddenimports=['src.daledou.tasks.common', 'src.daledou.tasks.one', 'src.daledou.tasks.two', 'src.daledou.tasks.other'],
+    hiddenimports=['src.tasks.common', 'src.tasks.noon', 'src.tasks.evening', 'src.tasks.register'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

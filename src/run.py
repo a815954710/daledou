@@ -9,6 +9,7 @@ from src.utils.client import Client, RequestError
 from src.utils.config import Config, ConfigResolver
 from src.utils.daledou import DaLeDou
 from src.utils.date_time import DateTime
+from src.utils.pushplus import send_pushplus
 
 
 class TaskRunner:
@@ -47,6 +48,7 @@ class TaskRunner:
         self.stats_lock = asyncio.Lock()
         self.queue = asyncio.Queue()
         self.statistics = Counter()
+        self.push_logs: list[str] = []
 
     async def run(self) -> None:
         """
@@ -78,6 +80,35 @@ class TaskRunner:
             for reason, count in self.statistics.items():
                 print(f"-- {reason}\n")
 
+        await self._push_logs()
+
+    async def _push_logs(self) -> None:
+        """推送本次运行产生的日志。"""
+        title = f"大乐斗 {self.module.value} 任务完成"
+        if not self.push_logs:
+            return
+
+        try:
+            push_tokens = Config.load_push_tokens(list(self.cookies.keys()))
+        except Exception as exc:
+            print(f"pushplus 配置读取失败：{exc}")
+            return
+
+        if not push_tokens:
+            return
+
+        content = "\n".join(self.push_logs)
+        max_length = 18000
+        if len(content) > max_length:
+            content = f"...日志过长，仅推送最后 {max_length} 字符...\n" + content[-max_length:]
+
+        content = f"```text\n{content}\n```"
+        for token in push_tokens:
+            await send_pushplus(token, title, content)
+
+    def _collect_log(self, qq: str, message: str) -> None:
+        self.push_logs.append(f"{qq} | {message}")
+
     async def _worker(self) -> None:
         """
         工作协程，从队列获取账号并处理任务
@@ -93,6 +124,7 @@ class TaskRunner:
 
                 if not cookie_dict:
                     failure_reason = f"{qq}: Cookie为空"
+                    self._collect_log(qq, "运行失败：Cookie为空")
                     async with self.stats_lock:
                         self.statistics[failure_reason] += 1
                     self.queue.task_done()
@@ -106,6 +138,9 @@ class TaskRunner:
                             qq,
                             client,
                             config_resolver,
+                            log_collector=lambda message, qq=qq: self._collect_log(
+                                qq, message
+                            ),
                         )
 
                         index_html = await d.get("cmd=index&style=1")
@@ -131,6 +166,7 @@ class TaskRunner:
                 except Exception as e:
                     traceback.print_exc()
                     failure_reason = f"{qq}: {str(e)}"
+                    self._collect_log(qq, f"运行失败：{str(e)}")
                     async with self.stats_lock:
                         self.statistics[failure_reason] += 1
                 finally:
