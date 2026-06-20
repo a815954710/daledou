@@ -34,7 +34,7 @@ async def 华山论剑(d: DaLeDou):
     """
     每月1~25号挑战，26号领取赛季段位奖励、荣誉兑换
     """
-    if not (1 <= DateTime.day() <= 260):
+    if not (1 <= DateTime.day() <= 26):
         return
 
     if DateTime.day() == 26:
@@ -1210,8 +1210,8 @@ async def 江湖长梦(d: DaLeDou):
 
 
 @register()
-async def 大侠回归三重好礼(d: DaLeDou):
-    # 大侠回归三重好礼
+async def 大侠回归(d: DaLeDou):
+    # 大侠回归
     await d.get("cmd=newAct&subtype=173&op=1")
     if data := d.findall(r"subtype=(\d+).*?taskid=(\d+)"):
         for s, t in data:
@@ -1855,8 +1855,13 @@ async def 我的帮派(d: DaLeDou):
     if DateTime.week() != 7:
         return
 
-    # 领取奖励 》报名帮战 》激活祝福
-    for sub in [4, 9, 6]:
+    if d.config("我的帮派.帮战.enabled"):
+        # 领取奖励 》报名帮战 》激活祝福
+        subs = [4, 9, 6]
+    else:
+        subs = [4, 6]
+
+    for sub in subs:
         await d.get(f"cmd=facwar&sub={sub}")
         d.log(d.find(r"</p>(.*?)<br /><a.*?查看上届"))
 

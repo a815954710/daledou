@@ -1643,11 +1643,11 @@ async def 喜从天降(d: DaLeDou):
 
 
 @register()
-async def 微信兑换(d: DaLeDou):
+async def 兑换码(d: DaLeDou):
     if DateTime.week() != 4:
         return
 
-    code: int = d.config("微信兑换.兑换码")
+    code: int = d.config("兑换码")
     # 兑换
     await d.get(
         f"cmd=weixin&cdkey={code}&sub=2&zapp_sid=&style=0&channel=0&i_p_w=cdkey|"
@@ -1739,7 +1739,7 @@ async def 登录商店(d: DaLeDou):
 
 
 @register()
-async def 盛世巡礼(d: DaLeDou):
+async def 周年巡礼(d: DaLeDou):
     if DateTime.week() != 4:
         return
 
@@ -1788,15 +1788,22 @@ async def 周年祝福(d: DaLeDou):
         d.log(d.find())
 
 
-# ---------------以下大乐斗首页链接文本待定-----------
+@register()
+async def 周年预热(d: DaLeDou):
+    # 周年预热
+    await d.get("cmd=newAct&subtype=117&op=0")
+    if "op=1" in d.html:
+        # 领取
+        await d.get("cmd=newAct&subtype=117&op=1")
+        d.log(d.find(r"<br /><br />(.*?)<"))
 
 
 @register()
-async def 年兽大作战(d: DaLeDou):
-    # 年兽大作战
+async def 职业挑战(d: DaLeDou):
+    # 职业挑战
     await d.get("cmd=newAct&subtype=170&op=0")
     if "等级不够" in d.html:
-        d.log("等级不够，还未开启年兽大作战哦！")
+        d.log("等级不够，还未开启职业挑战哦！")
         return
 
     # 自选武技库
@@ -1828,6 +1835,9 @@ async def 年兽大作战(d: DaLeDou):
         await d.get("cmd=newAct&subtype=170&op=8")
         d.log(d.find())
         await asyncio.sleep(0.2)
+
+
+# ---------------以下大乐斗首页链接文本待定-----------
 
 
 @register()
